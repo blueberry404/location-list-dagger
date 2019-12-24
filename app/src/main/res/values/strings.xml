@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">LocDagger</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_vehicles">Vehicles</string>
+    <string name="title_map">Map</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="title_taxi">TAXI</string>
+    <string name="title_pooling">POOLING</string>
+    <string name="title_info_vehicles">Showing vehicles within Hamburg</string>
+    <string name="title_empty_address">Not found</string>
+</resources>

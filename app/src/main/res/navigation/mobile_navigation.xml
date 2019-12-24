@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/navigation_vehicle">
+
+    <fragment
+        android:id="@+id/navigation_vehicle"
+        android:name="com.anum.locdagger.ui.vehicle.VehicleFragment"
+        android:label="@string/title_vehicles"
+        tools:layout="@layout/fragment_vehicle" >
+        <action
+            android:id="@+id/action_navigation_vehicle_to_vehiclesMapFragment"
+            app:destination="@id/vehiclesMapFragment"
+            app:enterAnim="@anim/nav_default_enter_anim"
+            app:exitAnim="@anim/nav_default_exit_anim" />
+    </fragment>
+    <fragment
+        android:id="@+id/vehiclesMapFragment"
+        android:name="com.anum.locdagger.ui.vehiclesMap.VehiclesMapFragment"
+        android:label="@string/title_map"
+        tools:layout="@layout/fragment_vehicles_map" >
+        <argument
+            android:name="toFocus"
+            app:argType="com.anum.locdagger.models.VehicleLocation"/>
+    </fragment>
+
+</navigation>
