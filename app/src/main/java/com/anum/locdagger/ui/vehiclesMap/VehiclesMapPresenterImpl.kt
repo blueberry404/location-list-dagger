@@ -3,13 +3,14 @@ package com.anum.locdagger.ui.vehiclesMap
 import com.anum.locdagger.helpers.AppSchedulerProvider
 import com.anum.locdagger.models.Fleets
 import com.anum.locdagger.models.VehicleLocation
+import com.anum.locdagger.repositories.VehiclesRepository
 import com.anum.locdagger.service.api.LocationService
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.toObservable
 import java.lang.ref.WeakReference
 import javax.inject.Inject
 
-class VehiclesMapPresenterImpl @Inject constructor(var locationService : LocationService,
+class VehiclesMapPresenterImpl @Inject constructor(var repository: VehiclesRepository,
                                                    var compositeDisposable: CompositeDisposable,
                                                    var schedulerProvider: AppSchedulerProvider)
     : VehiclesMapContract.Presenter {
@@ -27,14 +28,21 @@ class VehiclesMapPresenterImpl @Inject constructor(var locationService : Locatio
 
     override fun getVehicles(lat1: Double, long1: Double, lat2: Double, long2: Double) {
         view?.get()?.showLoader()
-        val disposable = locationService.getVehicles("https://some-url.com",
+        val disposable = repository.getVehiclesList("https://fake-poi-api.mytaxi.com",
             lat1, long1, lat2, long2)
             .subscribeOn(schedulerProvider.ioScheduler())
             .observeOn(schedulerProvider.uiScheduler())
             .subscribe({ fleet: Fleets? ->
                 fleet?.let {
-                    handleData(it.list)
-                } ?: run{
+                    it.list?.let { list ->
+                        handleData( list )
+                    } ?: run {
+                        view?.get()?.hideLoader()
+                        view?.get()?.showError("No data found")
+                    }
+
+                } ?: run {
+                    view?.get()?.hideLoader()
                     view?.get()?.showError("No data found")
                 }
 

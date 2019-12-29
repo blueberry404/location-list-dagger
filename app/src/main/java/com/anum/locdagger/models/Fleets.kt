@@ -7,7 +7,7 @@ import com.google.gson.annotations.SerializedName
 
 data class Fleets constructor(
     @SerializedName("list")
-    val list: List<VehicleLocation>
+    val list: List<VehicleLocation>?
 ) : BaseEntity(), Parcelable {
 
     constructor(parcel: Parcel) : this(parcel.createTypedArrayList(VehicleLocation))

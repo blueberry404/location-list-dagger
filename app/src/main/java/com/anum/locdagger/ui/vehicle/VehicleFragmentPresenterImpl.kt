@@ -3,13 +3,13 @@ package com.anum.locdagger.ui.vehicle
 import com.anum.locdagger.listeners.SchedulerProvider
 import com.anum.locdagger.models.Fleets
 import com.anum.locdagger.models.VehicleLocation
-import com.anum.locdagger.service.api.LocationService
+import com.anum.locdagger.repositories.VehiclesRepository
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.toObservable
 import java.lang.ref.WeakReference
 import javax.inject.Inject
 
-open class VehicleFragmentPresenterImpl @Inject constructor(var locationService : LocationService,
+open class VehicleFragmentPresenterImpl @Inject constructor(var vehiclesRepository: VehiclesRepository,
                                                        var compositeDisposable: CompositeDisposable,
                                                             var schedulerProvider: SchedulerProvider
                                                             ) :
@@ -28,14 +28,21 @@ open class VehicleFragmentPresenterImpl @Inject constructor(var locationService 
 
     override fun getVehicles(url: String, lat1: Double, long1: Double, lat2: Double, long2: Double) {
         view?.get()?.showLoader()
-        val disposable = locationService.getVehicles(url,
+        val disposable = vehiclesRepository.getVehiclesList(url,
             lat1, long1, lat2, long2)
             .subscribeOn(schedulerProvider.ioScheduler())
             .observeOn(schedulerProvider.uiScheduler())
             .subscribe({ fleet: Fleets? ->
                 fleet?.let {
-                    handleData( filterData(it.list) )
+                    it.list?.let { list ->
+                        handleData( filterData(list) )
+                    } ?: run {
+                        view?.get()?.hideLoader()
+                        view?.get()?.showError("No data found")
+                    }
+
                 } ?: run{
+                    view?.get()?.hideLoader()
                     view?.get()?.showError("No data found")
                 }
 
@@ -46,7 +53,7 @@ open class VehicleFragmentPresenterImpl @Inject constructor(var locationService 
         compositeDisposable.add(disposable)
     }
 
-    fun filterData(list: List<VehicleLocation>) : List<VehicleLocation> {
+    private fun filterData(list: List<VehicleLocation>) : List<VehicleLocation> {
         view?.get()?.let { view ->
             return list.filter { view.isLocationWithinUserBounds(it) }
         }
@@ -61,10 +68,16 @@ open class VehicleFragmentPresenterImpl @Inject constructor(var locationService 
             .toList()
             .subscribeOn(schedulerProvider.ioScheduler())
             .observeOn(schedulerProvider.uiScheduler())
-            .subscribe { vehicles ->
+            .subscribe({
+                    vehicles ->
                 view?.get()?.hideLoader()
-                view?.get()?.populateData(vehicles)
-            }
+                view?.get()?.populateData(vehicles)},
+                {
+                    e ->
+                    view?.get()?.showError(e.localizedMessage)
+                    println(e.localizedMessage)
+                })
+
         compositeDisposable.add(disposable)
     }
 }
