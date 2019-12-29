@@ -2,79 +2,106 @@ package com.anum.locdagger.ui.vehicle
 
 import com.anum.locdagger.TestSchedulerProvider
 import com.anum.locdagger.listeners.SchedulerProvider
+import com.anum.locdagger.models.Coordinate
 import com.anum.locdagger.models.Fleets
 import com.anum.locdagger.models.VehicleLocation
-import com.anum.locdagger.service.api.LocationService
+import com.anum.locdagger.repositories.VehiclesRepository
 import io.reactivex.Single
+import io.reactivex.SingleEmitter
 import io.reactivex.disposables.CompositeDisposable
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers
 import org.mockito.Mock
 import org.mockito.Mockito
-import org.mockito.Mockito.*
+import org.mockito.Mockito.verify
+import org.mockito.MockitoAnnotations
 import org.mockito.junit.MockitoJUnitRunner
+import org.mockito.Mockito.`when` as whenever
 
 @RunWith(MockitoJUnitRunner::class)
 class VehicleFragmentPresenterImplTest {
 
     @Mock private lateinit var view : VehicleFragmentContract.View
-    @Mock private lateinit var locationService : LocationService
+    @Mock private lateinit var vehiclesRepository: VehiclesRepository
     private var compositeDisposable : CompositeDisposable = CompositeDisposable()
     private var schedulerProvider: SchedulerProvider = TestSchedulerProvider()
     private lateinit var presenter: VehicleFragmentPresenterImpl
 
     @Before
     fun setUp() {
-        presenter = VehicleFragmentPresenterImpl(locationService, compositeDisposable, schedulerProvider)
+        MockitoAnnotations.initMocks(this)
+        presenter = VehicleFragmentPresenterImpl(vehiclesRepository, compositeDisposable, schedulerProvider)
         presenter.attachView(view)
     }
 
     @Test
-    fun testGetVehicles() {
+    fun testGetVehicles_Success_fleetListWithItems() {
 
-        //mock
-        var list  = mutableListOf<VehicleLocation>()
-        list.add(mock(VehicleLocation::class.java))
-        list.add(mock(VehicleLocation::class.java))
-        list.add(mock(VehicleLocation::class.java))
-
-        `when`(locationService.getVehicles(any(String::class.java), any(Double::class.java), any(Double::class.java), any(Double::class.java), any(Double::class.java)))
-            .thenReturn(Single.just(Fleets(list)))
-
-        //invoke
-        presenter.getVehicles("", 1.1, 1.1, 1.1, 1.1)
-
-        //assert
+        val vehicle = VehicleLocation(1, "TAXI", 0.0f, Coordinate(24.0, 57.0), null)
+        val single = Single.create { emitter : SingleEmitter<Fleets> ->
+            val list : List<VehicleLocation> = listOf(vehicle)
+            val fleet = Fleets(list)
+            emitter.onSuccess(fleet)
+        }
+        whenever(vehiclesRepository.getVehiclesList("https://test-url", 53.694865, 9.757589, 53.394655, 10.099891))
+            .thenReturn(single)
+//        whenever(view.getAddressFromLocation(vehicle)).thenReturn(Single.just(vehicle))
+        presenter.getVehicles("https://test-url", 53.694865, 9.757589, 53.394655, 10.099891)
         verify(view).showLoader()
         verify(view).hideLoader()
+        verify(view).isLocationWithinUserBounds(vehicle)
+//        verify(view).getAddressFromLocation(vehicle)
+        verify(view).populateData(ArgumentMatchers.anyList())
     }
 
-
-    /*
     @Test
-    fun filterData_AllLocationsReturned() {
+    fun testGetVehicles_Success_fleetListEmpty() {
 
-        var list  = mutableListOf<VehicleLocation>()
-        list.add(mock(VehicleLocation::class.java))
-        list.add(mock(VehicleLocation::class.java))
-        list.add(mock(VehicleLocation::class.java))
-
-//        `when`(list[0]).thenReturn(mock(VehicleLocation::class.java))
-//        `when`(list[1]).thenReturn(mock(VehicleLocation::class.java))
-//        `when`(list[2]).thenReturn(mock(VehicleLocation::class.java))
-
-        `when`(view.isLocationWithinUserBounds(list[0])).thenReturn(true)
-        `when`(view.isLocationWithinUserBounds(list[1])).thenReturn(true)
-        `when`(view.isLocationWithinUserBounds(list[2])).thenReturn(true)
-
-        var result = presenter.filterData(list)
-//        verify(view).isLocationWithinUserBounds(mock(VehicleLocation::class.java))
-//        verify(presenter).filterData(argThat { list -> list.size === 3 })
-
+        val single = Single.create { emitter : SingleEmitter<Fleets> ->
+            val list : List<VehicleLocation> = listOf()
+            val fleet = Fleets(list)
+            emitter.onSuccess(fleet)
+        }
+        whenever(vehiclesRepository.getVehiclesList("https://test-url", 53.694865, 9.757589, 53.394655, 10.099891))
+            .thenReturn(single)
+        presenter.getVehicles("https://test-url", 53.694865, 9.757589, 53.394655, 10.099891)
+        verify(view).showLoader()
+        verify(view).hideLoader()
+        verify(view).populateData(ArgumentMatchers.anyList())
     }
-    */
+
+    @Test
+    fun testGetVehicles_Success_Null_Fleet_List() {
+
+        val single = Single.create { emitter : SingleEmitter<Fleets> ->
+            val fleet = Fleets(null)
+            emitter.onSuccess(fleet)
+        }
+        whenever(vehiclesRepository.getVehiclesList("https://test-url", 53.694865, 9.757589, 53.394655, 10.099891))
+            .thenReturn(single)
+        presenter.getVehicles("https://test-url", 53.694865, 9.757589, 53.394655, 10.099891)
+        verify(view).showLoader()
+        verify(view).hideLoader()
+        verify(view).showError("No data found")
+    }
+
+    @Test
+    fun testGetVehicles_Failure() {
+
+        val single = Single.create { emitter : SingleEmitter<Fleets> ->
+            emitter.onError(Exception("No data found"))
+        }
+        whenever(vehiclesRepository.getVehiclesList("https://test-url", 53.694865, 9.757589, 53.394655, 10.099891))
+            .thenReturn(single)
+        presenter.getVehicles("https://test-url", 53.694865, 9.757589, 53.394655, 10.099891)
+        verify(view).showLoader()
+        verify(view).hideLoader()
+        verify(view).showError("No data found")
+    }
+
 
     @After
     fun tearDown() {
